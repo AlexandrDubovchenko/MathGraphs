@@ -50,7 +50,7 @@ export function initGraph(ctx) {
 
 export function drawGraph(ctx, tree) {
   let startPoint = null
-  for (let i = -6; i < 6; i += STEP) {
+  for (let i = -10; i <= 10; i += STEP) {
     const point = {
       x: GRAPH_START.x + i * SCALE,
       y: GRAPH_START.y - calculateTreeValue(tree, i) * SCALE

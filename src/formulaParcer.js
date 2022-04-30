@@ -5,7 +5,6 @@ const symbolTypes = {
 }
 
 const whiteSpaceRegex = /\s/g
-const STEP = 0.1
 const VAR = 'x'
 const PI = 'PI'
 const mathFunctions = {
@@ -13,11 +12,12 @@ const mathFunctions = {
   cos: (v) => Math.cos(v),
   tng: (v) => Math.tan(v),
   ctg: (v) => 1 / Math.tan(v),
+  abs: (v) => Math.abs(v)
 }
 
 
 
-const specialSymbols = ['+', '-', '*', '/', '(', ')']
+const specialSymbols = ['+', '-', '*', '/', '(', ')', '^']
 
 export function parseFormula(formula, varValue) {
   const formulaTree = []
@@ -28,7 +28,7 @@ export function parseFormula(formula, varValue) {
     const char = formula[i]
     if (specialSymbols.includes(char)) {
       const value = formula.substr(lastSpecialCharIndex, i - lastSpecialCharIndex).replace(whiteSpaceRegex, '')
-      let tree = lastFunc?.args || formulaTree
+      let tree = lastFunc?.current?.args || formulaTree
       switch (char) {
         case '(':
           const func = {
@@ -36,21 +36,28 @@ export function parseFormula(formula, varValue) {
             value: mathFunctions[value],
             args: []
           }
-          lastFunc = func;
+          const curLastFunc = lastFunc
+          lastFunc = {
+            prev: curLastFunc,
+            current: func
+          };
           (lastOperation?.args || tree).push(func)
           lastOperation = null
           break
         case ')':
-          (lastOperation?.args || lastFunc.args).push({
+          (lastOperation?.args || lastFunc.current.args).push({
             type: symbolTypes.number,
             value
           })
-          lastFunc = null
+          lastFunc = lastFunc.prev
           break
         case '/':
           lastOperation = handlePreoritizeSymbols(tree, value, char, lastOperation)
           break
         case '*':
+          lastOperation = handlePreoritizeSymbols(tree, value, char, lastOperation)
+          break
+        case '^':
           lastOperation = handlePreoritizeSymbols(tree, value, char, lastOperation)
           break
         default:
@@ -63,7 +70,7 @@ export function parseFormula(formula, varValue) {
   }
   const rest = formula.substr(lastSpecialCharIndex)
   if (rest) {
-    const tree = lastOperation?.args || lastFunc?.args || formulaTree
+    const tree = lastOperation?.args || lastFunc?.current?.args || formulaTree
     tree.push({
       type: symbolTypes.number,
       value: rest
@@ -157,5 +164,7 @@ function binaryOperation(value1, value2, operator) {
       return value1 * value2
     case '/':
       return value1 / value2
+    case '^':
+      return Math.pow(value1, value2)
   }
 }
